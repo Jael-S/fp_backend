@@ -2,6 +2,7 @@ package com.flowpolicy.politica.controller;
 
 import com.flowpolicy.common.dto.ApiResponse;
 import com.flowpolicy.common.dto.PageResponse;
+import com.flowpolicy.nodo.service.NodoService;
 import com.flowpolicy.politica.dto.PoliticaRequest;
 import com.flowpolicy.politica.dto.PoliticaResponse;
 import com.flowpolicy.politica.model.EstadoPolitica;
@@ -20,12 +21,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/v1/politicas")
 @RequiredArgsConstructor
 public class PoliticaController {
 
   private final PoliticaService politicaService;
+  private final NodoService nodoService;
 
   @Operation(summary = "Crear politica BORRADOR version 1")
   @PreAuthorize("hasRole('GESTOR_SISTEMA')")
@@ -78,5 +82,26 @@ public class PoliticaController {
   public ApiResponse<Void> delete(@PathVariable String id) {
     politicaService.delete(id);
     return ApiResponse.ok("Politica eliminada", null);
+  }
+
+  @Operation(summary = "Guardar diagrama + nodos + transiciones")
+  @PreAuthorize("hasRole('GESTOR_SISTEMA')")
+  @PutMapping("/{id}/diagrama")
+  public ApiResponse<Map<String, Object>> saveDiagrama(@PathVariable String id, @RequestBody Map<String, Object> payload) {
+    return ApiResponse.ok("Diagrama guardado", politicaService.saveDiagrama(id, payload));
+  }
+
+  @Operation(summary = "Obtener diagrama + nodos + transiciones")
+  @PreAuthorize("hasAnyRole('GESTOR_SISTEMA','ADMINISTRADOR_AREA','FUNCIONARIO')")
+  @GetMapping("/{id}/diagrama")
+  public ApiResponse<Map<String, Object>> getDiagrama(@PathVariable String id) {
+    return ApiResponse.ok("Diagrama obtenido", politicaService.getDiagrama(id));
+  }
+
+  @Operation(summary = "Obtener formulario asociado a un nodo")
+  @PreAuthorize("hasAnyRole('GESTOR_SISTEMA','ADMINISTRADOR_AREA','FUNCIONARIO')")
+  @GetMapping("/nodos/{id}/formulario")
+  public ApiResponse<Map<String, String>> getFormularioByNodo(@PathVariable String id) {
+    return ApiResponse.ok("Formulario de nodo obtenido", nodoService.getFormularioByNodoId(id));
   }
 }

@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.List;
 
 @Slf4j
@@ -83,6 +84,16 @@ public class NodoService {
         .orElseThrow(() -> new ResourceNotFoundException("Nodo no encontrado"));
     current.setActivo(false);
     nodoRepository.save(current);
+  }
+
+  public Map<String, String> getFormularioByNodoId(String id) {
+    String empresaId = currentUserService.getEmpresaId();
+    Nodo current = nodoRepository.findByIdAndEmpresaIdAndActivoTrue(id, empresaId)
+        .orElseThrow(() -> new ResourceNotFoundException("Nodo no encontrado"));
+    return Map.of(
+        "nodoId", current.getId(),
+        "formularioId", current.getFormularioId() == null ? "" : current.getFormularioId()
+    );
   }
 
   private NodoResponse toResponse(Nodo item) {

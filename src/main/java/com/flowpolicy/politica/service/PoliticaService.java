@@ -2,6 +2,9 @@ package com.flowpolicy.politica.service;
 
 import com.flowpolicy.common.dto.PageResponse;
 import com.flowpolicy.common.exception.ResourceNotFoundException;
+import com.flowpolicy.nodo.model.Nodo;
+import com.flowpolicy.nodo.model.TipoNodo;
+import com.flowpolicy.nodo.repository.NodoRepository;
 import com.flowpolicy.politica.dto.PoliticaRequest;
 import com.flowpolicy.politica.dto.PoliticaResponse;
 import com.flowpolicy.politica.model.EstadoPolitica;
@@ -16,6 +19,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -23,6 +29,7 @@ import java.util.ArrayList;
 public class PoliticaService {
 
   private final PoliticaRepository politicaRepository;
+  private final NodoRepository nodoRepository;
   private final CurrentUserService currentUserService;
 
   public PoliticaResponse create(PoliticaRequest request) {
@@ -130,17 +137,19 @@ public class PoliticaService {
   }
 
   private void validateCanActivate(Politica politica) {
-    if (politica.getNodoIds() == null || politica.getNodoIds().isEmpty()) {
-      throw new IllegalArgumentException("La politica debe tener nodos para activarse");
-    }
-    String diagrama = politica.getDiagramaJson();
-    if (diagrama == null || diagrama.isBlank()) {
-      return;
-    }
-    boolean hasInicio = diagrama.contains("INICIO");
-    boolean hasFin = diagrama.contains("FIN");
-    if (!hasInicio || !hasFin) {
-      throw new IllegalArgumentException("La politica debe contener nodo INICIO y FIN");
+    List<Nodo> nodos = nodoRepository.findByPoliticaIdAndEmpresaIdAndActivoTrue(politica.getId(), politica.getEmpresaId());
+    if (nodos.isEmpty()) throw new IllegalArgumentException("La politica debe tener nodos para activarse");
+
+    long totalInicio = nodos.stream().filter(n -> n.getTipo() == TipoNodo.INICIO).count();
+    long totalFin = nodos.stream().filter(n -> n.getTipo() == TipoNodo.FIN).count();
+    long totalTarea = nodos.stream().filter(n -> n.getTipo() == TipoNodo.PROCESO).count();
+    if (totalInicio != 1) throw new IllegalArgumentException("El diagrama debe tener un nodo Inicio");
+    if (totalFin < 1) throw new IllegalArgumentException("El diagrama debe tener al menos un nodo Fin");
+    if (totalTarea < 1) throw new IllegalArgumentException("El diagrama debe tener al menos una Tarea");
+    for (Nodo nodo : nodos) {
+      if (nodo.getTipo() == TipoNodo.PROCESO && (nodo.getDepartamentoId() == null || nodo.getDepartamentoId().isBlank())) {
+        throw new IllegalArgumentException("La tarea '" + nodo.getNombre() + "' no tiene departamento asignado");
+      }
     }
   }
 
@@ -175,6 +184,96 @@ public class PoliticaService {
     if (!politica.getTransicionIds().contains(transicionId)) {
       politica.getTransicionIds().add(transicionId);
       politicaRepository.save(politica);
+    }
+  }
+
+  public Map<String, Object> saveDiagrama(String politicaId, Map<String, Object> payload) {
+    String empresaId = currentUserService.getEmpresaId();
+    Politica politica = politicaRepository.findById(politicaId)
+        .filter(value -> empresaId.equals(value.getEmpresaId()) && value.isActivo())
+        .orElseThrow(() -> new ResourceNotFoundException("Politica no encontrada"));
+
+    String diagramaXml = String.valueOf(payload.getOrDefault("diagramaXml", ""));
+    politica.setDiagramaJson(diagramaXml);
+
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> nodosPayload = (List<Map<String, Object>>) payload.getOrDefault("nodos", List.of());
+    List<String> nodoIds = new ArrayList<>();
+
+    for (Map<String, Object> item : nodosPayload) {
+      String nodoId = stringValue(item.get("id"));
+      Nodo nodo = (nodoId == null || nodoId.isBlank())
+          ? new Nodo()
+          : nodoRepository.findByIdAndEmpresaIdAndActivoTrue(nodoId, empresaId).orElse(new Nodo());
+      if (nodo.getId() == null) {
+        nodo.setPoliticaId(politicaId);
+        nodo.setEmpresaId(empresaId);
+        nodo.setActivo(true);
+        nodo.setCreadoEn(LocalDateTime.now());
+      }
+      nodo.setNombre(stringValue(item.get("texto")));
+      nodo.setDescripcion(stringValue(item.get("texto")));
+      nodo.setTipo(parseTipo(stringValue(item.get("tipo"))));
+      nodo.setCarril(stringValue(item.get("carril")));
+      nodo.setDepartamentoId(stringValue(item.get("departamentoId")));
+      nodo.setFormularioId(stringValue(item.get("formularioId")));
+      nodo.setPrioridad(stringValue(item.get("prioridad")));
+      nodo.setTiempoEstimado(intValue(item.get("tiempoEstimado")));
+      Nodo saved = nodoRepository.save(nodo);
+      nodoIds.add(saved.getId());
+    }
+
+    politica.setNodoIds(nodoIds);
+    politicaRepository.save(politica);
+    return getDiagrama(politicaId);
+  }
+
+  public Map<String, Object> getDiagrama(String politicaId) {
+    String empresaId = currentUserService.getEmpresaId();
+    Politica politica = politicaRepository.findById(politicaId)
+        .filter(value -> empresaId.equals(value.getEmpresaId()) && value.isActivo())
+        .orElseThrow(() -> new ResourceNotFoundException("Politica no encontrada"));
+
+    List<Nodo> nodos = nodoRepository.findByPoliticaIdAndEmpresaIdAndActivoTrue(politicaId, empresaId);
+    List<Map<String, Object>> serializedNodos = new ArrayList<>();
+    for (Nodo nodo : nodos) {
+      Map<String, Object> n = new LinkedHashMap<>();
+      n.put("id", nodo.getId());
+      n.put("tipo", nodo.getTipo() == null ? null : nodo.getTipo().name());
+      n.put("texto", nodo.getNombre());
+      n.put("carril", nodo.getCarril());
+      n.put("departamentoId", nodo.getDepartamentoId());
+      n.put("formularioId", nodo.getFormularioId());
+      n.put("prioridad", nodo.getPrioridad());
+      n.put("tiempoEstimado", nodo.getTiempoEstimado());
+      serializedNodos.add(n);
+    }
+    Map<String, Object> out = new LinkedHashMap<>();
+    out.put("diagramaXml", politica.getDiagramaJson());
+    out.put("nodos", serializedNodos);
+    return out;
+  }
+
+  private String stringValue(Object raw) {
+    return raw == null ? null : String.valueOf(raw);
+  }
+
+  private Integer intValue(Object raw) {
+    if (raw == null) return null;
+    try {
+      return Integer.parseInt(String.valueOf(raw));
+    } catch (NumberFormatException ex) {
+      return null;
+    }
+  }
+
+  private TipoNodo parseTipo(String value) {
+    if (value == null) return TipoNodo.PROCESO;
+    if ("TAREA".equalsIgnoreCase(value) || "TASK".equalsIgnoreCase(value)) return TipoNodo.PROCESO;
+    try {
+      return TipoNodo.valueOf(value.toUpperCase());
+    } catch (IllegalArgumentException ex) {
+      return TipoNodo.PROCESO;
     }
   }
 

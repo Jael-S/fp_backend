@@ -37,6 +37,18 @@ public class Nodo {
   @Field("formularioId")
   private String formularioId;
 
+  @Field("departamentoId")
+  private String departamentoId;
+
+  @Field("carril")
+  private String carril;
+
+  @Field("prioridad")
+  private String prioridad;
+
+  @Field("tiempoEstimado")
+  private Integer tiempoEstimado;
+
   @Field("posicionX")
   private Double posicionX;
 
