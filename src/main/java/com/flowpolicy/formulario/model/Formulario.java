@@ -32,6 +32,15 @@ public class Formulario {
   @Field("nombre")
   private String nombre;
 
+  @Field("descripcion")
+  private String descripcion;
+
+  @Field("departamentoId")
+  private String departamentoId;
+
+  @Field("creadoPor")
+  private String creadoPor;
+
   @Field("campos")
   private List<Campo> campos;
 

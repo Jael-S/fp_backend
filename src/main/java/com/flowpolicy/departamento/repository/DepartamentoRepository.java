@@ -13,4 +13,6 @@ public interface DepartamentoRepository extends MongoRepository<Departamento, St
   boolean existsByEmpresaIdAndResponsableIdAndActivoTrue(String empresaId, String responsableId);
 
   Optional<Departamento> findByEmpresaIdAndResponsableIdAndActivoTrue(String empresaId, String responsableId);
+
+  Optional<Departamento> findByEmpresaIdAndNombreIgnoreCaseAndActivoTrue(String empresaId, String nombre);
 }

@@ -1,6 +1,7 @@
 package com.flowpolicy.formulario.controller;
 
 import com.flowpolicy.common.dto.ApiResponse;
+import com.flowpolicy.formulario.dto.CampoRequest;
 import com.flowpolicy.formulario.dto.FormularioRequest;
 import com.flowpolicy.formulario.dto.FormularioResponse;
 import com.flowpolicy.formulario.service.FormularioService;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -33,10 +35,26 @@ public class FormularioController {
     return ApiResponse.ok("Formulario creado", formularioService.create(request));
   }
 
+  @Operation(summary = "Listar formularios por rol y filtros")
+  @PreAuthorize("hasAnyRole('GESTOR_SISTEMA','ADMINISTRADOR_AREA')")
+  @GetMapping
+  public ApiResponse<List<FormularioResponse>> list(
+      @RequestParam(required = false) String departamentoId,
+      @RequestParam(required = false) String q
+  ) {
+    return ApiResponse.ok("Formularios listados", formularioService.list(departamentoId, q));
+  }
+
   @Operation(summary = "Buscar formularios por nodo")
   @GetMapping("/nodo/{nodoId}")
   public ApiResponse<List<FormularioResponse>> byNodo(@PathVariable String nodoId) {
     return ApiResponse.ok("Formularios listados", formularioService.findByNodoId(nodoId));
+  }
+
+  @Operation(summary = "Buscar formularios por politica")
+  @GetMapping("/politica/{politicaId}")
+  public ApiResponse<List<FormularioResponse>> byPolitica(@PathVariable String politicaId) {
+    return ApiResponse.ok("Formularios listados", formularioService.findByPoliticaId(politicaId));
   }
 
   @Operation(summary = "Actualizar formulario")
@@ -44,6 +62,13 @@ public class FormularioController {
   @PutMapping("/{id}")
   public ApiResponse<FormularioResponse> update(@PathVariable String id, @Valid @RequestBody FormularioRequest request) {
     return ApiResponse.ok("Formulario actualizado", formularioService.update(id, request));
+  }
+
+  @Operation(summary = "Agregar campo a formulario")
+  @PreAuthorize("hasAnyRole('GESTOR_SISTEMA','ADMINISTRADOR_AREA')")
+  @PostMapping("/{id}/campos")
+  public ApiResponse<FormularioResponse> addCampo(@PathVariable String id, @Valid @RequestBody CampoRequest request) {
+    return ApiResponse.ok("Campo agregado", formularioService.addCampo(id, request));
   }
 
   @Operation(summary = "Eliminar logico formulario")

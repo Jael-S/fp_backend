@@ -17,6 +17,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     registry.addEndpoint("/ws/monitoreo")
         .setAllowedOriginPatterns("*")
         .withSockJS();
+    registry.addEndpoint("/ws-monitor")
+        .setAllowedOriginPatterns("*")
+        .withSockJS();
   }
 
   @Override

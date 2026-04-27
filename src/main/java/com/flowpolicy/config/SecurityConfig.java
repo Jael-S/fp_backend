@@ -32,13 +32,14 @@ public class SecurityConfig {
         .cors(org.springframework.security.config.Customizer.withDefaults())
         .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/api/v1/auth/**", "/api/v1/registro").permitAll()
+            .requestMatchers("/api/v1/auth/**", "/api/v1/registro", "/api/v1/public/**").permitAll()
             .requestMatchers(
                 "/actuator/health",
                 "/swagger-ui.html",
                 "/swagger-ui/**",
                 "/v3/api-docs/**",
-                "/ws/**"
+                "/ws/**",
+                "/ws-monitor/**"
             ).permitAll()
             .anyRequest().authenticated()
         )

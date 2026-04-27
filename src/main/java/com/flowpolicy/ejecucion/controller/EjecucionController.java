@@ -31,6 +31,11 @@ public class EjecucionController {
     return ApiResponse.ok("Ejecuciones pendientes", ejecucionService.pendientes());
   }
 
+  @GetMapping("/mis-tareas")
+  public ApiResponse<List<EjecucionResponse>> misTareas() {
+    return ApiResponse.ok("Mis tareas pendientes", ejecucionService.pendientes());
+  }
+
   @GetMapping
   public ApiResponse<List<EjecucionResponse>> byTramite(@RequestParam String tramiteId) {
     return ApiResponse.ok("Ejecuciones por tramite", ejecucionService.byTramite(tramiteId));

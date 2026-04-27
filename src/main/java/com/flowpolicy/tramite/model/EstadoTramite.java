@@ -4,5 +4,6 @@ public enum EstadoTramite {
   PENDIENTE,
   EN_PROCESO,
   COMPLETADO,
-  RECHAZADO
+  RECHAZADO,
+  CANCELADO
 }

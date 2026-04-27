@@ -28,6 +28,12 @@ public class Notificacion {
   @Field("tramiteId")
   private String tramiteId;
 
+  @Field("ejecucionId")
+  private String ejecucionId;
+
+  @Field("tipo")
+  private String tipo;
+
   @Field("titulo")
   private String titulo;
 

@@ -76,6 +76,13 @@ public class PoliticaController {
     return ApiResponse.ok("Politicas listadas", politicaService.list(page, size, estado));
   }
 
+  @Operation(summary = "Listar politicas activas")
+  @PreAuthorize("hasAnyRole('GESTOR_SISTEMA','ADMINISTRADOR_AREA')")
+  @GetMapping("/activas")
+  public ApiResponse<java.util.List<PoliticaResponse>> listActivas() {
+    return ApiResponse.ok("Politicas activas listadas", politicaService.listActivas());
+  }
+
   @Operation(summary = "Eliminar logico politica")
   @PreAuthorize("hasRole('GESTOR_SISTEMA')")
   @DeleteMapping("/{id}")
@@ -96,6 +103,48 @@ public class PoliticaController {
   @GetMapping("/{id}/diagrama")
   public ApiResponse<Map<String, Object>> getDiagrama(@PathVariable String id) {
     return ApiResponse.ok("Diagrama obtenido", politicaService.getDiagrama(id));
+  }
+
+  @Operation(summary = "Guardar XML + nodos + transiciones + relaciones")
+  @PreAuthorize("hasRole('GESTOR_SISTEMA')")
+  @PutMapping("/{id}/diagrama/completo")
+  public ApiResponse<Map<String, Object>> guardarDiagramaCompleto(
+      @PathVariable String id,
+      @RequestBody Map<String, Object> payload
+  ) {
+    String xml = String.valueOf(payload.getOrDefault("xml", payload.getOrDefault("diagramaXml", "")));
+    return ApiResponse.ok("Diagrama completo guardado", politicaService.guardarDiagramaConRelaciones(id, xml));
+  }
+
+  @Operation(summary = "Asignar formulario a tarea")
+  @PreAuthorize("hasRole('GESTOR_SISTEMA')")
+  @PostMapping("/{id}/tareas/{taskId}/formulario")
+  public ApiResponse<Void> asignarFormularioATarea(
+      @PathVariable String id,
+      @PathVariable String taskId,
+      @RequestBody Map<String, String> payload
+  ) {
+    politicaService.asignarFormularioATarea(id, taskId, payload.get("formularioId"));
+    return ApiResponse.ok("Formulario asignado a tarea", null);
+  }
+
+  @Operation(summary = "Guardar condiciones de una decision")
+  @PreAuthorize("hasRole('GESTOR_SISTEMA')")
+  @PutMapping("/{id}/decisiones/{gatewayId}/condiciones")
+  public ApiResponse<Void> guardarCondicionesDecision(
+      @PathVariable String id,
+      @PathVariable String gatewayId,
+      @RequestBody Map<String, Object> payload
+  ) {
+    politicaService.guardarCondicionesDecision(id, gatewayId, payload);
+    return ApiResponse.ok("Condiciones guardadas", null);
+  }
+
+  @Operation(summary = "Obtener XML + nodos + transiciones + relaciones")
+  @PreAuthorize("hasAnyRole('GESTOR_SISTEMA','ADMINISTRADOR_AREA','FUNCIONARIO')")
+  @GetMapping("/{id}/diagrama/completo")
+  public ApiResponse<Map<String, Object>> obtenerDiagramaCompleto(@PathVariable String id) {
+    return ApiResponse.ok("Diagrama completo obtenido", politicaService.obtenerDiagramaCompleto(id));
   }
 
   @Operation(summary = "Obtener formulario asociado a un nodo")

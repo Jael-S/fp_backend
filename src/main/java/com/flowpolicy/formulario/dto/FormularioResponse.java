@@ -7,6 +7,8 @@ public record FormularioResponse(
     String politicaId,
     String nodoId,
     String nombre,
+    String descripcion,
+    String departamentoId,
     List<CampoResponse> campos
 ) {
 }

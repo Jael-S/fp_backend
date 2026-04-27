@@ -6,6 +6,7 @@ import com.flowpolicy.notificacion.dto.NoLeidasResponse;
 import com.flowpolicy.notificacion.dto.NotificacionResponse;
 import com.flowpolicy.notificacion.service.NotificacionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -33,6 +34,11 @@ public class NotificacionController {
     return ApiResponse.ok("Contador no leidas", new NoLeidasResponse(notificacionService.countNoLeidas()));
   }
 
+  @GetMapping("/no-leidas/count")
+  public ApiResponse<NoLeidasResponse> countNoLeidasCompat() {
+    return ApiResponse.ok("Contador no leidas", new NoLeidasResponse(notificacionService.countNoLeidas()));
+  }
+
   @PutMapping("/{id}/leer")
   public ApiResponse<NotificacionResponse> markAsRead(@PathVariable String id) {
     return ApiResponse.ok("Notificacion leida", notificacionService.markAsRead(id));
@@ -42,5 +48,11 @@ public class NotificacionController {
   public ApiResponse<Void> markAllAsRead() {
     notificacionService.markAllAsRead();
     return ApiResponse.ok("Notificaciones marcadas como leidas", null);
+  }
+
+  @DeleteMapping("/{id}")
+  public ApiResponse<Void> delete(@PathVariable String id) {
+    notificacionService.delete(id);
+    return ApiResponse.ok("Notificacion eliminada", null);
   }
 }

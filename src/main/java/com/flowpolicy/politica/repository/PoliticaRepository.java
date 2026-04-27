@@ -10,4 +10,8 @@ public interface PoliticaRepository extends MongoRepository<Politica, String> {
   Page<Politica> findByEmpresaIdAndActivoTrue(String empresaId, Pageable pageable);
 
   Page<Politica> findByEmpresaIdAndEstadoAndActivoTrue(String empresaId, EstadoPolitica estado, Pageable pageable);
+
+  java.util.List<Politica> findByEmpresaIdAndEstadoAndActivoTrue(String empresaId, EstadoPolitica estado);
+
+  java.util.List<Politica> findByEmpresaIdAndEstadoAndActivoTrue(String empresaId, String estado);
 }

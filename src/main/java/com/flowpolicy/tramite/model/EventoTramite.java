@@ -14,6 +14,9 @@ import java.util.Map;
 @AllArgsConstructor
 public class EventoTramite {
   private LocalDateTime fecha;
+  private String nodoNombre;
+  private String departamentoNombre;
+  private Boolean completado;
   private String evento;
   private String usuarioId;
   private Map<String, Object> detalles;

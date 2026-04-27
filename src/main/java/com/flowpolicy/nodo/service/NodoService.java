@@ -1,6 +1,10 @@
 package com.flowpolicy.nodo.service;
 
 import com.flowpolicy.common.exception.ResourceNotFoundException;
+import com.flowpolicy.departamento.model.Departamento;
+import com.flowpolicy.departamento.repository.DepartamentoRepository;
+import com.flowpolicy.formulario.model.Formulario;
+import com.flowpolicy.formulario.repository.FormularioRepository;
 import com.flowpolicy.nodo.dto.NodoPosicionRequest;
 import com.flowpolicy.nodo.dto.NodoRequest;
 import com.flowpolicy.nodo.dto.NodoResponse;
@@ -24,6 +28,8 @@ public class NodoService {
   private final NodoRepository nodoRepository;
   private final CurrentUserService currentUserService;
   private final PoliticaService politicaService;
+  private final FormularioRepository formularioRepository;
+  private final DepartamentoRepository departamentoRepository;
 
   public NodoResponse create(String politicaId, NodoRequest request) {
     String empresaId = currentUserService.getEmpresaId();
@@ -94,6 +100,31 @@ public class NodoService {
         "nodoId", current.getId(),
         "formularioId", current.getFormularioId() == null ? "" : current.getFormularioId()
     );
+  }
+
+  public Formulario obtenerFormularioPorNodo(String politicaId, String nodoElementId) {
+    String empresaId = currentUserService.getEmpresaId();
+    politicaService.ensureBelongsToEmpresa(politicaId, empresaId);
+    Nodo nodo = nodoRepository.findByPoliticaIdAndEmpresaIdAndElementIdAndActivoTrue(politicaId, empresaId, nodoElementId)
+        .orElseThrow(() -> new ResourceNotFoundException("Nodo no encontrado en politica"));
+    if (nodo.getFormularioId() == null || nodo.getFormularioId().isBlank()) {
+      throw new ResourceNotFoundException("El nodo no tiene formulario asignado");
+    }
+    return formularioRepository.findByIdAndEmpresaIdAndActivoTrue(nodo.getFormularioId(), empresaId)
+        .orElseThrow(() -> new ResourceNotFoundException("Formulario no encontrado"));
+  }
+
+  public Departamento obtenerDepartamentoPorNodo(String politicaId, String nodoElementId) {
+    String empresaId = currentUserService.getEmpresaId();
+    politicaService.ensureBelongsToEmpresa(politicaId, empresaId);
+    Nodo nodo = nodoRepository.findByPoliticaIdAndEmpresaIdAndElementIdAndActivoTrue(politicaId, empresaId, nodoElementId)
+        .orElseThrow(() -> new ResourceNotFoundException("Nodo no encontrado en politica"));
+    if (nodo.getDepartamentoId() == null || nodo.getDepartamentoId().isBlank()) {
+      throw new ResourceNotFoundException("El nodo no tiene departamento asignado");
+    }
+    return departamentoRepository.findById(nodo.getDepartamentoId())
+        .filter(Departamento::isActivo)
+        .orElseThrow(() -> new ResourceNotFoundException("Departamento no encontrado"));
   }
 
   private NodoResponse toResponse(Nodo item) {

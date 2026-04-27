@@ -8,6 +8,9 @@ import java.util.Optional;
 
 public interface FormularioRepository extends MongoRepository<Formulario, String> {
   List<Formulario> findByEmpresaIdAndNodoIdAndActivoTrue(String empresaId, String nodoId);
+  List<Formulario> findByEmpresaIdAndPoliticaIdAndActivoTrue(String empresaId, String politicaId);
+  List<Formulario> findByEmpresaIdAndActivoTrue(String empresaId);
+  List<Formulario> findByEmpresaIdAndDepartamentoIdAndActivoTrue(String empresaId, String departamentoId);
 
   Optional<Formulario> findByIdAndEmpresaIdAndActivoTrue(String id, String empresaId);
 }

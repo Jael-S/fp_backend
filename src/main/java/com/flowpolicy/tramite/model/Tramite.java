@@ -30,14 +30,41 @@ public class Tramite {
   @Field("politicaId")
   private String politicaId;
 
+  @Field("titulo")
+  private String titulo;
+
+  @Field("prioridad")
+  private String prioridad;
+
+  @Field("fechaLimite")
+  private LocalDateTime fechaLimite;
+
   @Field("usuarioCreadorId")
   private String usuarioCreadorId;
+
+  @Field("creadoPorNombre")
+  private String creadoPorNombre;
 
   @Field("estado")
   private EstadoTramite estado;
 
   @Field("nodoActualId")
   private String nodoActualId;
+
+  @Field("departamentoActualId")
+  private String departamentoActualId;
+
+  @Field("clienteNombre")
+  private String clienteNombre;
+
+  @Field("clienteIdentidad")
+  private String clienteIdentidad;
+
+  @Field("clienteEmail")
+  private String clienteEmail;
+
+  @Field("codigoSeguimiento")
+  private String codigoSeguimiento;
 
   @Field("datos")
   private Map<String, Object> datos;

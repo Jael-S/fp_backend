@@ -72,6 +72,18 @@ public class NotificacionService {
   }
 
   public void notifyUsers(String empresaId, List<String> userIds, String tramiteId, String titulo, String mensaje) {
+    notifyUsers(empresaId, userIds, tramiteId, null, "ALERTA", titulo, mensaje);
+  }
+
+  public void notifyUsers(
+      String empresaId,
+      List<String> userIds,
+      String tramiteId,
+      String ejecucionId,
+      String tipo,
+      String titulo,
+      String mensaje
+  ) {
     LocalDateTime now = LocalDateTime.now();
     List<Notificacion> batch = userIds.stream()
         .distinct()
@@ -79,6 +91,8 @@ public class NotificacionService {
             .empresaId(empresaId)
             .usuarioId(userId)
             .tramiteId(tramiteId)
+            .ejecucionId(ejecucionId)
+            .tipo(tipo)
             .titulo(titulo)
             .mensaje(mensaje)
             .leida(false)
@@ -87,6 +101,12 @@ public class NotificacionService {
         .toList();
     notificacionRepository.saveAll(batch);
     batch.forEach(item -> messagingTemplate.convertAndSend("/topic/notificaciones/" + item.getUsuarioId(), toResponse(item)));
+  }
+
+  public void delete(String id) {
+    String empresaId = currentUserService.getEmpresaId();
+    String usuarioId = currentUserService.getCurrentUser().getId();
+    notificacionRepository.deleteByIdAndEmpresaIdAndUsuarioId(id, empresaId, usuarioId);
   }
 
   private NotificacionResponse toResponse(Notificacion item) {

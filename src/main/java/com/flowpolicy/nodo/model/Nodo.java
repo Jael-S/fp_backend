@@ -9,6 +9,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
 @Data
 @Builder
@@ -34,14 +36,23 @@ public class Nodo {
   @Field("tipo")
   private TipoNodo tipo;
 
+  @Field("elementId")
+  private String elementId;
+
   @Field("formularioId")
   private String formularioId;
 
   @Field("departamentoId")
   private String departamentoId;
 
+  @Field("carrilId")
+  private String carrilId;
+
   @Field("carril")
   private String carril;
+
+  @Field("condiciones")
+  private List<Map<String, String>> condiciones;
 
   @Field("prioridad")
   private String prioridad;

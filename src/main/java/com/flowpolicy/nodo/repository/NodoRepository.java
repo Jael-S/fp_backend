@@ -9,6 +9,7 @@ import java.util.Optional;
 
 public interface NodoRepository extends MongoRepository<Nodo, String> {
   List<Nodo> findByPoliticaIdAndEmpresaIdAndActivoTrue(String politicaId, String empresaId);
+  java.util.Optional<Nodo> findByPoliticaIdAndEmpresaIdAndElementIdAndActivoTrue(String politicaId, String empresaId, String elementId);
 
   long countByPoliticaIdAndEmpresaIdAndActivoTrueAndTipo(String politicaId, String empresaId, TipoNodo tipo);
 
