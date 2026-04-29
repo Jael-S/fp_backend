@@ -8,6 +8,8 @@ public record TransicionRequest(
     String nombre,
     String descripcion,
     String condicion,
-    Boolean requiereAprobacion
+    Boolean requiereAprobacion,
+    String tipo,
+    String etiqueta
 ) {
 }

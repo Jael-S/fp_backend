@@ -54,6 +54,10 @@ public class Nodo {
   @Field("condiciones")
   private List<Map<String, String>> condiciones;
 
+  /** SECUENCIAL, ALTERNATIVO, PARALELO, ITERATIVO (gateways / decisión) */
+  @Field("tipoFlujo")
+  private String tipoFlujo;
+
   @Field("prioridad")
   private String prioridad;
 

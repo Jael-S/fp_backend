@@ -36,6 +36,11 @@ public class EjecucionController {
     return ApiResponse.ok("Mis tareas pendientes", ejecucionService.pendientes());
   }
 
+  @GetMapping("/historial")
+  public ApiResponse<List<EjecucionResponse>> historial() {
+    return ApiResponse.ok("Historial de tareas", ejecucionService.historial());
+  }
+
   @GetMapping
   public ApiResponse<List<EjecucionResponse>> byTramite(@RequestParam String tramiteId) {
     return ApiResponse.ok("Ejecuciones por tramite", ejecucionService.byTramite(tramiteId));

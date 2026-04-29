@@ -40,6 +40,14 @@ public class Transicion {
   @Field("condicion")
   private String condicion;
 
+  /** SECUENCIAL, ALTERNATIVO, PARALELO, ITERATIVO (según origen / flujo) */
+  @Field("tipo")
+  private String tipo;
+
+  /** Etiqueta visible en el diagrama (ej. Sí / No en gateway) */
+  @Field("etiqueta")
+  private String etiqueta;
+
   @Field("requiereAprobacion")
   private boolean requiereAprobacion;
 

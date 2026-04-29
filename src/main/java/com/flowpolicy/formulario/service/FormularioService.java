@@ -87,6 +87,27 @@ public class FormularioService {
         .toList();
   }
 
+  public List<FormularioResponse> listarPorDepartamento(String departamentoId) {
+    if (departamentoId == null || departamentoId.isBlank()) {
+      return List.of();
+    }
+    var currentUser = currentUserService.getCurrentUser();
+    Rol rol = currentUser.getRol().normalized();
+    if (rol != Rol.GESTOR_SISTEMA && rol != Rol.ADMINISTRADOR_AREA) {
+      return List.of();
+    }
+    String empresaId = currentUser.getEmpresaId();
+    if (rol == Rol.ADMINISTRADOR_AREA) {
+      if (currentUser.getDepartamentoId() == null || !currentUser.getDepartamentoId().equals(departamentoId)) {
+        return List.of();
+      }
+    }
+    return formularioRepository.findByEmpresaIdAndDepartamentoIdAndActivoTrue(empresaId, departamentoId)
+        .stream()
+        .map(this::toResponse)
+        .toList();
+  }
+
   public FormularioResponse update(String id, FormularioRequest request) {
     var currentUser = currentUserService.getCurrentUser();
     String empresaId = currentUser.getEmpresaId();

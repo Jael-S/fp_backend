@@ -11,5 +11,8 @@ public interface TransicionRepository extends MongoRepository<Transicion, String
 
   List<Transicion> findByNodoOrigenIdAndEmpresaIdAndActivoTrue(String nodoOrigenId, String empresaId);
 
+  List<Transicion> findByPoliticaIdAndNodoOrigenIdAndEmpresaIdAndActivoTrue(
+      String politicaId, String nodoOrigenId, String empresaId);
+
   Optional<Transicion> findByIdAndEmpresaIdAndActivoTrue(String id, String empresaId);
 }

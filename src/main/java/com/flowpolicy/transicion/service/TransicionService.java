@@ -41,6 +41,8 @@ public class TransicionService {
         .nombre(request.nombre())
         .descripcion(request.descripcion())
         .condicion(request.condicion())
+        .tipo(request.tipo() == null || request.tipo().isBlank() ? "SECUENCIAL" : request.tipo())
+        .etiqueta(request.etiqueta())
         .requiereAprobacion(Boolean.TRUE.equals(request.requiereAprobacion()))
         .activo(true)
         .creadoEn(LocalDateTime.now())
@@ -69,6 +71,10 @@ public class TransicionService {
     current.setNombre(request.nombre());
     current.setDescripcion(request.descripcion());
     current.setCondicion(request.condicion());
+    if (request.tipo() != null && !request.tipo().isBlank()) {
+      current.setTipo(request.tipo());
+    }
+    current.setEtiqueta(request.etiqueta());
     current.setRequiereAprobacion(Boolean.TRUE.equals(request.requiereAprobacion()));
     return toResponse(transicionRepository.save(current));
   }
@@ -99,6 +105,8 @@ public class TransicionService {
         item.getNombre(),
         item.getDescripcion(),
         item.getCondicion(),
+        item.getTipo() == null || item.getTipo().isBlank() ? "SECUENCIAL" : item.getTipo(),
+        item.getEtiqueta(),
         item.isRequiereAprobacion()
     );
   }

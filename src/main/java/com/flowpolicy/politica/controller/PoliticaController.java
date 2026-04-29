@@ -4,6 +4,8 @@ import com.flowpolicy.common.dto.ApiResponse;
 import com.flowpolicy.common.dto.PageResponse;
 import com.flowpolicy.nodo.service.NodoService;
 import com.flowpolicy.politica.dto.PoliticaRequest;
+import com.flowpolicy.transicion.dto.TransicionResponse;
+import com.flowpolicy.transicion.service.TransicionService;
 import com.flowpolicy.politica.dto.PoliticaResponse;
 import com.flowpolicy.politica.model.EstadoPolitica;
 import com.flowpolicy.politica.service.PoliticaService;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -30,6 +33,7 @@ public class PoliticaController {
 
   private final PoliticaService politicaService;
   private final NodoService nodoService;
+  private final TransicionService transicionService;
 
   @Operation(summary = "Crear politica BORRADOR version 1")
   @PreAuthorize("hasRole('GESTOR_SISTEMA')")
@@ -113,7 +117,16 @@ public class PoliticaController {
       @RequestBody Map<String, Object> payload
   ) {
     String xml = String.valueOf(payload.getOrDefault("xml", payload.getOrDefault("diagramaXml", "")));
-    return ApiResponse.ok("Diagrama completo guardado", politicaService.guardarDiagramaConRelaciones(id, xml));
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> transiciones = (List<Map<String, Object>>) payload.get("transiciones");
+    return ApiResponse.ok("Diagrama completo guardado", politicaService.guardarDiagramaConRelaciones(id, xml, transiciones));
+  }
+
+  @Operation(summary = "Listar transiciones persistidas de la política")
+  @PreAuthorize("hasAnyRole('GESTOR_SISTEMA','ADMINISTRADOR_AREA')")
+  @GetMapping("/{id}/transiciones")
+  public ApiResponse<List<TransicionResponse>> listTransiciones(@PathVariable String id) {
+    return ApiResponse.ok("Transiciones listadas", transicionService.listByPolitica(id));
   }
 
   @Operation(summary = "Asignar formulario a tarea")

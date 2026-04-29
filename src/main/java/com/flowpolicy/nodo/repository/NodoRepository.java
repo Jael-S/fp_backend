@@ -14,4 +14,6 @@ public interface NodoRepository extends MongoRepository<Nodo, String> {
   long countByPoliticaIdAndEmpresaIdAndActivoTrueAndTipo(String politicaId, String empresaId, TipoNodo tipo);
 
   Optional<Nodo> findByIdAndEmpresaIdAndActivoTrue(String id, String empresaId);
+  
+  Optional<Nodo> findByIdAndEmpresaId(String id, String empresaId);
 }

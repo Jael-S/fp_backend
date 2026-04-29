@@ -106,10 +106,7 @@ public class TramiteService {
         .actualizadoEn(now)
         .build());
 
-    String responsableId = departamentoRepository.findById(departamentoAsignado)
-        .filter(d -> empresaId.equals(d.getEmpresaId()) && d.isActivo())
-        .map(d -> d.getResponsableId())
-        .orElse(currentUser.getId());
+    String responsableId = resolverAsignadoParaDepartamento(empresaId, departamentoAsignado, currentUser.getId());
     ejecucionNodoRepository.save(EjecucionNodo.builder()
         .empresaId(empresaId)
         .departamentoId(departamentoAsignado)
@@ -120,6 +117,16 @@ public class TramiteService {
         .activo(true)
         .creadoEn(now)
         .build());
+
+    notificacionService.notifyUsers(
+        empresaId,
+        List.of(responsableId),
+        created.getId(),
+        created.getId(),
+        "ASIGNACION",
+        "Nueva tarea asignada",
+        "Se te ha asignado el trámite: " + created.getTitulo()
+    );
 
     messagingTemplate.convertAndSend("/topic/monitoreo/tramites", toResponse(created));
     messagingTemplate.convertAndSend("/topic/monitor/" + created.getPoliticaId(), monitorByPolitica(created.getPoliticaId()));
@@ -176,6 +183,46 @@ public class TramiteService {
 
   public List<EventoTramite> historial(String id) {
     return getById(id).historial();
+  }
+
+  public TramiteResponse update(String id, TramiteRequest request) {
+    String empresaId = currentUserService.getEmpresaId();
+    Tramite current = tramiteRepository.findByIdAndEmpresaIdAndActivoTrue(id, empresaId)
+        .orElseThrow(() -> new ResourceNotFoundException("Tramite no encontrado"));
+    validateManage(current);
+    current.setTitulo(request.titulo());
+    if (request.prioridad() != null && !request.prioridad().isBlank()) {
+      current.setPrioridad(request.prioridad().toUpperCase());
+    }
+    current.setFechaLimite(request.fechaLimite());
+    current.setClienteNombre(request.clienteNombre());
+    current.setClienteIdentidad(request.clienteIdentidad());
+    current.setClienteEmail(request.clienteEmail());
+    current.setCodigoSeguimiento(request.codigoSeguimiento());
+    if (request.datos() != null) {
+      current.setDatos(request.datos());
+    }
+    current.setActualizadoEn(LocalDateTime.now());
+    if (current.getHistorial() == null) {
+      current.setHistorial(new ArrayList<>());
+    }
+    current.getHistorial().add(EventoTramite.builder()
+        .fecha(LocalDateTime.now())
+        .evento("TRAMITE_ACTUALIZADO")
+        .usuarioId(currentUserService.getCurrentUser().getId())
+        .detalles(Map.of("titulo", current.getTitulo(), "prioridad", current.getPrioridad()))
+        .build());
+    return toResponse(tramiteRepository.save(current));
+  }
+
+  public void delete(String id) {
+    String empresaId = currentUserService.getEmpresaId();
+    Tramite current = tramiteRepository.findByIdAndEmpresaIdAndActivoTrue(id, empresaId)
+        .orElseThrow(() -> new ResourceNotFoundException("Tramite no encontrado"));
+    validateManage(current);
+    current.setActivo(false);
+    current.setActualizadoEn(LocalDateTime.now());
+    tramiteRepository.save(current);
   }
 
   public PageResponse<TramiteResponse> myTramites(int page, int size) {
@@ -314,6 +361,22 @@ public class TramiteService {
     throw new IllegalArgumentException("No tienes permisos para ver este tramite");
   }
 
+  private void validateManage(Tramite tramite) {
+    Usuario current = currentUserService.getCurrentUser();
+    Rol rol = current.getRol().normalized();
+    if (rol == Rol.GESTOR_SISTEMA) {
+      return;
+    }
+    if (rol == Rol.ADMINISTRADOR_AREA && current.getDepartamentoId() != null
+        && current.getDepartamentoId().equals(tramite.getDepartamentoId())) {
+      return;
+    }
+    if (rol == Rol.FUNCIONARIO && current.getId().equals(tramite.getUsuarioCreadorId())) {
+      return;
+    }
+    throw new IllegalArgumentException("No tienes permisos para editar/eliminar este tramite");
+  }
+
   private TramiteResponse toResponse(Tramite item) {
     return new TramiteResponse(
         item.getId(),
@@ -345,6 +408,24 @@ public class TramiteService {
       code = "FP-" + year + "-" + String.format("%05d", sequence++);
     } while (tramiteRepository.findByEmpresaIdAndCodigoSeguimientoAndActivoTrue(empresaId, code).isPresent());
     return code;
+  }
+
+  /**
+   * Busca un FUNCIONARIO activo en el departamento. Si no existe, usa el responsable del departamento.
+   * Fallback final: el usuario que está creando el trámite.
+   */
+  private String resolverAsignadoParaDepartamento(String empresaId, String departamentoId, String fallbackId) {
+    if (departamentoId == null || departamentoId.isBlank()) return fallbackId;
+    Page<Usuario> funcionarios = usuarioRepository.findByEmpresaIdAndDepartamentoIdAndRolAndActivoTrue(
+        empresaId, departamentoId, Rol.FUNCIONARIO, PageRequest.of(0, 1));
+    if (funcionarios.hasContent()) {
+      return funcionarios.getContent().get(0).getId();
+    }
+    return departamentoRepository.findById(departamentoId)
+        .filter(d -> empresaId.equals(d.getEmpresaId()) && d.isActivo())
+        .map(d -> d.getResponsableId())
+        .filter(id -> id != null && !id.isBlank())
+        .orElse(fallbackId);
   }
 
   private String resolveDepartamentoNombre(String departamentoId) {

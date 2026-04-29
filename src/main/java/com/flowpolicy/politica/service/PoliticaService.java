@@ -35,6 +35,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -281,6 +282,14 @@ public class PoliticaService {
   }
 
   public Map<String, Object> guardarDiagramaConRelaciones(String politicaId, String xml) {
+    return guardarDiagramaConRelaciones(politicaId, xml, null);
+  }
+
+  public Map<String, Object> guardarDiagramaConRelaciones(
+      String politicaId,
+      String xml,
+      List<Map<String, Object>> transicionesCliente
+  ) {
     String empresaId = currentUserService.getEmpresaId();
     Politica politica = politicaRepository.findById(politicaId)
         .filter(value -> empresaId.equals(value.getEmpresaId()) && value.isActivo())
@@ -290,6 +299,12 @@ public class PoliticaService {
     ParsedData parsed = extractDataFromBpmn(doc, politicaId, empresaId);
 
     List<Nodo> actuales = nodoRepository.findByPoliticaIdAndEmpresaIdAndActivoTrue(politicaId, empresaId);
+    Map<String, Nodo> prevPorElementId = new LinkedHashMap<>();
+    for (Nodo n : actuales) {
+      if (n.getElementId() != null && !n.getElementId().isBlank()) {
+        prevPorElementId.put(n.getElementId(), n);
+      }
+    }
     for (Nodo nodo : actuales) {
       nodo.setActivo(false);
     }
@@ -303,6 +318,14 @@ public class PoliticaService {
 
     List<Nodo> nodosGuardados = new ArrayList<>();
     for (ParsedNode item : parsed.nodes) {
+      Nodo prev = prevPorElementId.get(item.elementId);
+      String formularioId = prev != null ? prev.getFormularioId() : null;
+      String departamentoId = prev != null && prev.getDepartamentoId() != null && !prev.getDepartamentoId().isBlank()
+          ? prev.getDepartamentoId()
+          : item.departamentoId;
+      List<Map<String, String>> condiciones = prev != null && prev.getCondiciones() != null
+          ? new ArrayList<>(prev.getCondiciones())
+          : new ArrayList<>();
       Nodo nodo = Nodo.builder()
           .politicaId(politicaId)
           .empresaId(empresaId)
@@ -312,13 +335,13 @@ public class PoliticaService {
           .elementId(item.elementId)
           .carrilId(item.carrilId)
           .carril(item.carrilNombre)
-          .departamentoId(item.departamentoId)
-          .formularioId(null)
+          .departamentoId(departamentoId)
+          .formularioId(formularioId)
           .prioridad("MEDIA")
           .tiempoEstimado(24)
           .activo(true)
           .creadoEn(LocalDateTime.now())
-          .condiciones(new ArrayList<>())
+          .condiciones(condiciones)
           .build();
       nodosGuardados.add(nodoRepository.save(nodo));
     }
@@ -329,20 +352,70 @@ public class PoliticaService {
     }
 
     List<Transicion> transicionesGuardadas = new ArrayList<>();
-    for (ParsedTransition item : parsed.transitions) {
-      Transicion transicion = Transicion.builder()
-          .politicaId(politicaId)
-          .empresaId(empresaId)
-          .nodoOrigenId(nodoIdByElement.get(item.origenElementId))
-          .nodoDestinoId(nodoIdByElement.get(item.destinoElementId))
-          .nombre(item.condicion == null || item.condicion.isBlank() ? "Transicion" : item.condicion)
-          .descripcion(null)
-          .condicion(item.condicion)
-          .requiereAprobacion(false)
-          .activo(true)
-          .creadoEn(LocalDateTime.now())
-          .build();
-      transicionesGuardadas.add(transicionRepository.save(transicion));
+    if (transicionesCliente != null && !transicionesCliente.isEmpty()) {
+      for (Map<String, Object> row : transicionesCliente) {
+        String oe = Objects.toString(row.get("nodoOrigenId"), "").trim();
+        String de = Objects.toString(row.get("nodoDestinoId"), "").trim();
+        if (oe.isEmpty() || de.isEmpty()) {
+          continue;
+        }
+        String oMongo = nodoIdByElement.get(oe);
+        String dMongo = nodoIdByElement.get(de);
+        if (oMongo == null || dMongo == null) {
+          continue;
+        }
+        String tipo = Objects.toString(row.get("tipo"), "SECUENCIAL");
+        if (tipo.isBlank()) {
+          tipo = "SECUENCIAL";
+        }
+        String etiquetaRaw = Objects.toString(row.get("etiqueta"), "").trim();
+        String etiqueta = etiquetaRaw.isEmpty() ? null : etiquetaRaw;
+        String nombre = etiqueta != null ? etiqueta : "Transicion";
+        transicionesGuardadas.add(transicionRepository.save(Transicion.builder()
+            .politicaId(politicaId)
+            .empresaId(empresaId)
+            .nodoOrigenId(oMongo)
+            .nodoDestinoId(dMongo)
+            .nombre(nombre)
+            .descripcion(null)
+            .condicion(null)
+            .tipo(tipo)
+            .etiqueta(etiqueta)
+            .requiereAprobacion(false)
+            .activo(true)
+            .creadoEn(LocalDateTime.now())
+            .build()));
+      }
+    } else {
+      for (ParsedTransition item : parsed.transitions) {
+        String oMongo = nodoIdByElement.get(item.origenElementId());
+        String dMongo = nodoIdByElement.get(item.destinoElementId());
+        if (oMongo == null || dMongo == null) {
+          continue;
+        }
+        ParsedNode origen = findParsedNode(parsed.nodes, item.origenElementId());
+        String tipo = "SECUENCIAL";
+        if (origen != null && origen.tipo == TipoNodo.DECISION) {
+          tipo = "ALTERNATIVO";
+        }
+        String etiqueta = item.flowLabel() == null || item.flowLabel().isBlank() ? null : item.flowLabel();
+        String nombre = etiqueta != null ? etiqueta : "Transicion";
+        Transicion transicion = Transicion.builder()
+            .politicaId(politicaId)
+            .empresaId(empresaId)
+            .nodoOrigenId(oMongo)
+            .nodoDestinoId(dMongo)
+            .nombre(nombre)
+            .descripcion(null)
+            .condicion(null)
+            .tipo(tipo)
+            .etiqueta(etiqueta)
+            .requiereAprobacion(false)
+            .activo(true)
+            .creadoEn(LocalDateTime.now())
+            .build();
+        transicionesGuardadas.add(transicionRepository.save(transicion));
+      }
     }
 
     politica.setDiagramaJson(xml);
@@ -351,6 +424,18 @@ public class PoliticaService {
     politicaRepository.save(politica);
 
     return obtenerDiagramaCompleto(politicaId);
+  }
+
+  private static ParsedNode findParsedNode(List<ParsedNode> nodes, String elementId) {
+    if (elementId == null || elementId.isBlank()) {
+      return null;
+    }
+    for (ParsedNode n : nodes) {
+      if (elementId.equals(n.elementId)) {
+        return n;
+      }
+    }
+    return null;
   }
 
   public void asignarFormularioATarea(String politicaId, String taskId, String formularioId) {
@@ -433,6 +518,8 @@ public class PoliticaService {
       m.put("origenId", t.getNodoOrigenId());
       m.put("destinoId", t.getNodoDestinoId());
       m.put("condicion", t.getCondicion());
+      m.put("tipo", t.getTipo() == null || t.getTipo().isBlank() ? "SECUENCIAL" : t.getTipo());
+      m.put("etiqueta", t.getEtiqueta());
       return m;
     }).toList();
 
@@ -500,10 +587,11 @@ public class PoliticaService {
         } else if (gatewayTags.contains(local)) {
           nodes.add(new ParsedNode(child.getAttribute("id"), safeName(child, "Decision"), TipoNodo.DECISION, carril));
         } else if ("sequenceFlow".equals(local)) {
+          String flowName = child.getAttribute("name");
           transitions.add(new ParsedTransition(
               child.getAttribute("sourceRef"),
               child.getAttribute("targetRef"),
-              child.getAttribute("name")
+              flowName == null || flowName.isBlank() ? null : flowName
           ));
         }
       }
@@ -544,7 +632,7 @@ public class PoliticaService {
     }
   }
 
-  private record ParsedTransition(String origenElementId, String destinoElementId, String condicion) {}
+  private record ParsedTransition(String origenElementId, String destinoElementId, String flowLabel) {}
 
   private record ParsedData(List<ParsedNode> nodes, List<ParsedTransition> transitions) {}
 

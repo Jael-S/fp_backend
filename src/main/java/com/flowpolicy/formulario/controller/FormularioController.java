@@ -57,6 +57,13 @@ public class FormularioController {
     return ApiResponse.ok("Formularios listados", formularioService.findByPoliticaId(politicaId));
   }
 
+  @Operation(summary = "Listar formularios por departamento")
+  @PreAuthorize("permitAll()")
+  @GetMapping("/departamento/{departamentoId}")
+  public ApiResponse<List<FormularioResponse>> listarPorDepartamento(@PathVariable String departamentoId) {
+    return ApiResponse.ok("Formularios listados", formularioService.listarPorDepartamento(departamentoId));
+  }
+
   @Operation(summary = "Actualizar formulario")
   @PreAuthorize("hasAnyRole('GESTOR_SISTEMA','ADMINISTRADOR_AREA')")
   @PutMapping("/{id}")

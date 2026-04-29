@@ -8,6 +8,7 @@ public record NodoResponse(
     String tipo,
     String formularioId,
     Double posicionX,
-    Double posicionY
+    Double posicionY,
+    String tipoFlujo
 ) {
 }

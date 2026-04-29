@@ -7,7 +7,11 @@ import java.util.Map;
 public record EjecucionResponse(
     String id,
     String tramiteId,
+    String tramiteTitulo,
     String nodoId,
+    String nodoNombre,
+    String departamentoId,
+    String departamentoNombre,
     String usuarioAsignadoId,
     String estado,
     LocalDateTime inicioEjecucion,
@@ -16,5 +20,4 @@ public record EjecucionResponse(
     Map<String, Object> respuestasFormulario,
     List<String> adjuntos,
     String observaciones
-) {
-}
+) {}

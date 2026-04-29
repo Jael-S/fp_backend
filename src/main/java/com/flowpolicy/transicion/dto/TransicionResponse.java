@@ -8,6 +8,8 @@ public record TransicionResponse(
     String nombre,
     String descripcion,
     String condicion,
+    String tipo,
+    String etiqueta,
     boolean requiereAprobacion
 ) {
 }
